@@ -1,25 +1,128 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: 'Reproducible Data: Week 2 Assignment'
+output: html_document
 ---
 
+Loading and preprocessing the data
 
-## Loading and preprocessing the data
-
-
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
+```{r}
+setwd('C:/Users/Allen/Google Drive/Coursera/Reproducible Data/Week 2/Assignment/data')
+dat<-read.csv('activity.csv')
+dat_original<-read.csv('activity.csv')
+dat<-na.omit(dat)
+```
 
 
+**Question 1:**
+What is mean total number of steps taken per day?
 
-## Imputing missing values
+```{r}
+totalStepsPerDay<-aggregate(dat$steps,by=list(dat$date),FUN='sum')
+
+meanStepsPerDay<-aggregate(dat$steps,by=list(dat$date),FUN='mean')
+
+q1_dataset<-merge(totalStepsPerDay,meanStepsPerDay,by.x='Group.1', by.y='Group.1')
+
+medianStepsPerDay<-aggregate(dat$steps,by=list(dat$date),FUN='median')
+
+q1_dataset<-merge(q1_dataset,medianStepsPerDay,by.x='Group.1', by.y='Group.1')
+
+colnames(q1_dataset)<-c('date','total','mean','median')
+```
 
 
+Histogram of Total Steps Per Day
 
-## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+hist(q1_dataset$total)
+```
+
+
+Total, Mean, and Median by Date Report
+
+```{r}
+print(q1_dataset)
+```
+
+
+**Question 2:**
+Graph of AVG Daily Activity Pattern
+
+```{r}
+library(ggplot2)
+q2_dataset<-aggregate(dat$steps,by=list(dat$interval),mean)
+colnames(q2_dataset)<-c('Interval','AvgSteps')
+ggplot(q2_dataset, aes(Interval, AvgSteps))+geom_line()
+```
+
+Interval with the Highest AVG Steps
+
+```{r}
+q2_dataset[q2_dataset$AvgSteps==max(q2_dataset$AvgSteps),]
+```
+
+**Question 3: **
+Imputing missing values
+
+Number of NA's
+
+```{r}
+sum(is.na(dat_original$steps))
+```
+
+Use overall mean as the NAs
+
+```{r}
+dat_original$steps[is.na(dat_original$steps)] <- mean(dat$steps)
+
+totalStepsPerDay_q3<-aggregate(dat_original$steps,by=list(dat_original$date),FUN='sum')
+
+meanStepsPerDay_q3<-aggregate(dat_original$steps,by=list(dat_original$date),FUN='mean')
+
+q3_dataset<-merge(totalStepsPerDay_q3,meanStepsPerDay_q3,by.x='Group.1', by.y='Group.1')
+
+medianStepsPerDay_q3<-aggregate(dat_original$steps,by=list(dat_original$date),FUN='median')
+
+q3_dataset<-merge(q3_dataset,medianStepsPerDay_q3,by.x='Group.1', by.y='Group.1')
+
+colnames(q3_dataset)<-c('date','total','mean','median')
+
+```
+
+Histogram of Total Steps Per Day
+
+```{r}
+hist(q3_dataset$total)
+```
+
+
+Total, Mean, and Median by Date Report After Imputing Missing Values
+
+```{r}
+q3_dataset_final<-merge(q3_dataset,q1_dataset,by.x='date',by.y='date',all.x=TRUE)
+colnames(q3_dataset_final)<-c('date','tot_incl_na','mean_incl_na','med_incl_na','tot_no_na','mean_no_na','med_no_na')
+q3_dataset_final$tot_incl_na<-round(q3_dataset_final$tot_incl_na,3)
+q3_dataset_final$mean_incl_na<-round(q3_dataset_final$mean_incl_na,3)
+q3_dataset_final$med_incl_na<-round(q3_dataset_final$med_incl_na,3)
+q3_dataset_final$tot_no_na<-round(q3_dataset_final$tot_no_na,3)
+q3_dataset_final$mean_no_na<-round(q3_dataset_final$mean_no_na,3)
+q3_dataset_final$med_no_na<-round(q3_dataset_final$med_no_na,3)
+q3_dataset_final$totDifference<-q3_dataset_final$tot_incl_na-q3_dataset_final$tot_no_na
+print(q3_dataset_final)
+
+```
+
+**Question 4:**
+Weekday vs Weekend
+
+```{r}
+q4_dataset<-dat_original
+q4_dataset$weekType<-sapply(q4_dataset$date, function(x) if(weekdays(as.Date(x))=='Saturday'|weekdays(as.Date(x))=='Sunday'){'Weekend'
+  }else {
+      'Weekday'
+    })
+
+q4_dataset_agg<-aggregate(steps~interval+weekType,data=q4_dataset,mean)
+
+ggplot(q4_dataset_agg, aes(interval, steps))+geom_line()+ facet_grid(weekType ~ .)
+```
